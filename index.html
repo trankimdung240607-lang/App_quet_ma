@@ -3,161 +3,65 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quét Mã Hàng - Test</title>
-  
+  <title>Quét Mã Hàng</title>
   <style>
-    :root { --primary: #4A90E2; --success: #4CAF50; --danger: #F44336; }
-    * { margin:0; padding:0; box-sizing:border-box; }
     body {
-      font-family: system-ui, sans-serif;
-      background: #F8F9FA;
-      color: #333;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
       max-width: 480px;
       margin: 0 auto;
       min-height: 100vh;
     }
     .header {
-      background: linear-gradient(135deg, #357ABD, #4A90E2);
+      background: #357ABD;
       color: white;
-      padding: 18px 20px;
-      display: flex;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    .back { font-size: 32px; cursor: pointer; margin-right: 12px; }
-    .title { flex: 1; font-size: 23px; font-weight: 700; }
-    .screen { display: none; padding-bottom: 80px; }
-    .screen.active { display: block; }
-
-    .home-header {
-      background: linear-gradient(135deg, #4A90E2, #357ABD);
-      color: white;
+      padding: 20px;
       text-align: center;
-      padding: 50px 20px;
-    }
-    .progress { font-size: 52px; font-weight: bold; margin: 10px 0; }
-
-    .btn {
-      width: 90%;
-      margin: 12px auto;
-      padding: 26px;
-      border-radius: 20px;
       font-size: 24px;
-      font-weight: 700;
+      font-weight: bold;
+    }
+    .content {
+      padding: 20px;
+    }
+    .btn {
+      background: #4A90E2;
+      color: white;
+      padding: 25px;
+      margin: 15px 0;
+      border-radius: 16px;
+      font-size: 22px;
       text-align: center;
       display: block;
-      cursor: pointer;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-success { background: var(--success); color: white; }
-
     .card {
       background: white;
-      margin: 20px;
-      padding: 24px;
-      border-radius: 20px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      padding: 20px;
+      border-radius: 16px;
+      margin: 15px 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .camera-box {
-      width: 90%;
-      height: 380px;
-      margin: 40px auto;
-      border: 6px dashed var(--primary);
-      border-radius: 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #f0f7ff;
-      font-size: 70px;
-    }
-    .large { font-size: 1.35em !important; }
   </style>
 </head>
 <body>
 
-  <div id="home" class="screen active">
-    <div class="header">
-      <div class="title">Trang Chủ</div>
-    </div>
-    <div class="home-header">
-      <p>Hôm nay</p>
-      <p class="progress">15 / 20</p>
-      <p>đơn hàng</p>
-    </div>
+  <div class="header">📱 QUÉT MÃ HÀNG</div>
+
+  <div class="content">
     <div class="card">
-      <div class="btn btn-primary" onclick="showScreen('scan')">📷 QUÉT MÃ HÀNG</div>
-      <div class="btn btn-primary" onclick="showScreen('list')">📋 DANH SÁCH ĐƠN</div>
+      <h2>15 / 20 đơn hôm nay</h2>
     </div>
-  </div>
 
-  <div id="scan" class="screen">
-    <div class="header">
-      <span class="back" onclick="showScreen('home')">←</span>
-      <div class="title">QUÉT MÃ HÀNG</div>
-    </div>
-    <div class="camera-box" onclick="simulateScan()">
-      📱<br><br>
-      <strong>Nhấn để quét</strong>
-    </div>
-  </div>
-
-  <div id="success" class="screen">
-    <div class="header">
-      <span class="back" onclick="showScreen('scan')">←</span>
-      <div class="title">THÀNH CÔNG</div>
-    </div>
-    <div class="result card" style="text-align:center; font-size:24px;">
-      <div style="font-size:120px; color:var(--success);">✓</div>
-      <h2 style="color:var(--success);">Quét Thành Công!</h2>
-      <p>SPX123456789</p>
-      <div class="btn btn-success" onclick="alert('Đã đánh dấu giao thành công!')">✅ ĐÁNH DẤU ĐÃ GIAO</div>
-    </div>
-  </div>
-
-  <div id="fail" class="screen">
-    <div class="header">
-      <span class="back" onclick="showScreen('scan')">←</span>
-      <div class="title">QUÉT THẤT BẠI</div>
-    </div>
-    <div class="result card" style="text-align:center; font-size:24px;">
-      <div style="font-size:120px; color:var(--danger);">✕</div>
-      <h2 style="color:var(--danger);">Không hợp lệ</h2>
-      <div class="btn btn-primary" onclick="showScreen('scan')">🔄 Quét lại</div>
-    </div>
-  </div>
-
-  <div id="list" class="screen">
-    <div class="header">
-      <span class="back" onclick="showScreen('home')">←</span>
-      <div class="title">DANH SÁCH ĐƠN</div>
-    </div>
-    <div class="card">
-      <div class="order-item" style="padding:15px; background:#f8f9fa; margin:10px 0; border-radius:12px;">
-        DH250603001 - Nguyễn Văn An
-      </div>
-      <div class="order-item" style="padding:15px; background:#f8f9fa; margin:10px 0; border-radius:12px;">
-        DH250603002 - Trần Thị Bình
-      </div>
-    </div>
+    <a href="#" onclick="alert('Đang vào màn quét... (Demo)')" class="btn">📷 BẮT ĐẦU QUÉT MÃ</a>
+    <a href="#" onclick="alert('Xem danh sách đơn hàng')" class="btn">📋 DANH SÁCH ĐƠN HÀNG</a>
+    <a href="#" onclick="alert('Mở hỗ trợ')" class="btn">🛟 HỖ TRỢ</a>
   </div>
 
   <script>
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-    function simulateScan() {
-      if (Math.random() > 0.3) {
-        showScreen('success');
-      } else {
-        showScreen('fail');
-      }
-    }
+    alert("Ứng dụng đã tải thành công! 🎉\n\nĐây là bản demo đơn giản.");
   </script>
 </body>
 </html>
