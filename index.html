@@ -1,0 +1,570 @@
+// App.tsx - App Quét Mã Hàng - Phiên bản tối ưu cho người cao tuổi
+// Tác giả: Grok Builder
+// GitHub: https://github.com/yourusername/quet-ma-hang-elders
+
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  StatusBar,
+  Alert,
+  Vibration,
+  Dimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Camera, CameraType } from 'expo-camera';
+import * as Speech from 'expo-speech';
+
+const { width } = Dimensions.get('window');
+
+interface Order {
+  id: string;
+  code: string;
+  name: string;
+  customer: string;
+  address: string;
+  time: string;
+  status: 'pending' | 'completed';
+}
+
+const mockOrders: Order[] = [
+  {
+    id: 'DH250603001',
+    code: 'SPX123456789',
+    name: 'Máy lọc không khí Xiaomi 4 Lite',
+    customer: 'Nguyễn Văn An',
+    address: '123 Đường Nguyễn Trãi, P. Bến Thành, Quận 1, TP.HCM',
+    time: '09:15',
+    status: 'completed',
+  },
+  {
+    id: 'DH250603002',
+    code: 'SPX987654321',
+    name: 'Tai nghe Sony WH-1000XM5',
+    customer: 'Trần Thị Bình',
+    address: '456 Nguyễn Thị Minh Khai, Quận 3',
+    time: '09:45',
+    status: 'completed',
+  },
+];
+
+const App = () => {
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'scan' | 'success' | 'fail' | 'detail' | 'list' | 'support' | 'menu'>('home');
+  const [scannedCode, setScannedCode] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [largeText, setLargeText] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+  }, []);
+
+  const speak = (text: string) => {
+    if (voiceEnabled) {
+      Speech.speak(text, { language: 'vi', rate: 0.9, pitch: 1.0 });
+    }
+  };
+
+  const navigate = (screen: typeof currentScreen, order?: Order) => {
+    setCurrentScreen(screen);
+    if (order) setSelectedOrder(order);
+    Vibration.vibrate(50);
+    if (voiceEnabled) {
+      const messages: Record<string, string> = {
+        home: 'Màn hình chính. Bạn có 15 trên 20 đơn hàng hôm nay.',
+        scan: 'Quét mã hàng. Hãy đưa mã vào khung camera.',
+        success: 'Quét thành công!',
+        fail: 'Quét thất bại. Vui lòng thử lại.',
+        list: 'Danh sách đơn hàng.',
+        support: 'Hỗ trợ. Gọi hotline 1900 1234 nếu cần giúp đỡ.',
+      };
+      if (messages[screen]) speak(messages[screen]);
+    }
+  };
+
+  const handleBarCodeScanned = ({ data }: { data: string }) => {
+    setScannedCode(data);
+    setCameraActive(false);
+    if (data.includes('SPX') || data.length > 8) {
+      navigate('success');
+    } else {
+      navigate('fail');
+    }
+  };
+
+  const markAsDelivered = () => {
+    Alert.alert('Thành công', 'Đã đánh dấu đơn hàng giao thành công!', [
+      { text: 'OK', onPress: () => navigate('list') },
+    ]);
+    speak('Đơn hàng đã được đánh dấu giao thành công');
+  };
+
+  const renderHeader = (title: string, showBack = true) => (
+    <View style={styles.header}>
+      {showBack && (
+        <TouchableOpacity onPress={() => navigate('home')} style={styles.backButton}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.headerTitle, largeText && styles.headerTitleLarge]}>{title}</Text>
+      <TouchableOpacity onPress={() => setVoiceEnabled(!voiceEnabled)} style={styles.voiceBtn}>
+        <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Screen 1: Home
+  const HomeScreen = () => (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <LinearGradient colors={['#4A90E2', '#357ABD']} style={styles.homeHeader}>
+        <Text style={[styles.dateText, largeText && styles.largeText]}>Hôm nay</Text>
+        <Text style={[styles.progressText, largeText && styles.largeText]}>15 / 20 đơn hàng</Text>
+      </LinearGradient>
+
+      <View style={styles.card}>
+        <TouchableOpacity style={styles.bigButton} onPress={() => navigate('scan')}>
+          <Text style={[styles.bigButtonText, largeText && styles.largeText]}>📷 QUÉT MÃ</Text>
+          <Text style={styles.buttonSub}>Bắt đầu quét</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.bigButton} onPress={() => navigate('list')}>
+          <Text style={[styles.bigButtonText, largeText && styles.largeText]}>📋 DANH SÁCH ĐƠN</Text>
+          <Text style={styles.buttonSub}>Xem các đơn hàng</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.menuGrid}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigate('support')}>
+          <Text style={styles.menuIcon}>🛟</Text>
+          <Text style={[styles.menuText, largeText && styles.largeText]}>Hỗ trợ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigate('menu')}>
+          <Text style={styles.menuIcon}>☰</Text>
+          <Text style={[styles.menuText, largeText && styles.largeText]}>Menu</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.toggleContainer} onPress={() => setLargeText(!largeText)}>
+        <Text style={[styles.toggleText, largeText && styles.largeText]}>
+          {largeText ? '🔠 Chữ nhỏ hơn' : '🔠 Chữ to hơn'}
+        </Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+
+  // Screen 2: Scan
+  const ScanScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('QUÉT MÃ HÀNG')}
+      <View style={styles.cameraContainer}>
+        {hasPermission && cameraActive ? (
+          <Camera
+            style={styles.camera}
+            type={CameraType.back}
+            barCodeScannerSettings={{ barCodeTypes: ['qr', 'upc_e'] }}
+            onBarCodeScanned={handleBarCodeScanned}
+          />
+        ) : (
+          <View style={styles.cameraPlaceholder}>
+            <Text style={[styles.placeholderText, largeText && styles.largeText]}>📱</Text>
+            <Text style={[styles.placeholderText, largeText && styles.largeText]}>Đưa mã vào khung</Text>
+            <TouchableOpacity style={styles.startScanBtn} onPress={() => setCameraActive(true)}>
+              <Text style={[styles.startScanText, largeText && styles.largeText]}>BẮT ĐẦU QUÉT</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
+  // Screen 3: Success
+  const SuccessScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('QUÉT THÀNH CÔNG')}
+      <View style={styles.resultContainer}>
+        <View style={styles.successIcon}>
+          <Text style={styles.checkmark}>✓</Text>
+        </View>
+        <Text style={[styles.successTitle, largeText && styles.largeText]}>THÀNH CÔNG</Text>
+        <Text style={styles.resultCode}>SPX123456789</Text>
+        
+        <View style={styles.orderInfo}>
+          <Text style={[styles.infoLabel, largeText && styles.largeText]}>Tên hàng:</Text>
+          <Text style={[styles.infoValue, largeText && styles.largeText]}>Máy lọc không khí Xiaomi 4 Lite</Text>
+          
+          <Text style={[styles.infoLabel, largeText && styles.largeText]}>Khách hàng:</Text>
+          <Text style={[styles.infoValue, largeText && styles.largeText]}>Nguyễn Văn An</Text>
+          
+          <Text style={[styles.infoLabel, largeText && styles.largeText]}>Địa chỉ giao:</Text>
+          <Text style={[styles.infoValue, largeText && styles.largeText]}>123 Đường Nguyễn Trãi, P. Bến Thành, Quận 1, TP.HCM</Text>
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={markAsDelivered}>
+          <Text style={[styles.primaryButtonText, largeText && styles.largeText]}>✅ ĐÁNH DẤU ĐÃ GIAO</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigate('scan')}>
+          <Text style={[styles.secondaryButtonText, largeText && styles.largeText]}>QUÉT TIẾP</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Screen 4: Fail
+  const FailScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('QUÉT THẤT BẠI')}
+      <View style={styles.resultContainer}>
+        <View style={styles.failIcon}>
+          <Text style={styles.failX}>✕</Text>
+        </View>
+        <Text style={[styles.failTitle, largeText && styles.largeText]}>KHÔNG HỢP LỆ</Text>
+        <Text style={styles.failSubtitle}>Vui lòng quét lại</Text>
+        
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigate('scan')}>
+          <Text style={[styles.primaryButtonText, largeText && styles.largeText]}>🔄 QUÉT LẠI</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigate('home')}>
+          <Text style={[styles.secondaryButtonText, largeText && styles.largeText]}>VỀ TRANG CHỦ</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Screen 5: Order Detail
+  const DetailScreen = () => {
+    if (!selectedOrder) return null;
+    return (
+      <View style={styles.container}>
+        {renderHeader('CHI TIẾT ĐƠN HÀNG')}
+        <ScrollView style={styles.detailScroll}>
+          <View style={styles.detailCard}>
+            <Text style={[styles.detailId, largeText && styles.largeText]}>{selectedOrder.id}</Text>
+            <Text style={[styles.detailCode, largeText && styles.largeText]}>{selectedOrder.code}</Text>
+            
+            <Text style={[styles.detailLabel, largeText && styles.largeText]}>Tên hàng</Text>
+            <Text style={[styles.detailValue, largeText && styles.largeText]}>{selectedOrder.name}</Text>
+            
+            <Text style={[styles.detailLabel, largeText && styles.largeText]}>Khách hàng</Text>
+            <Text style={[styles.detailValue, largeText && styles.largeText]}>{selectedOrder.customer}</Text>
+            
+            <Text style={[styles.detailLabel, largeText && styles.largeText]}>Địa chỉ</Text>
+            <Text style={[styles.detailValue, largeText && styles.largeText]}>{selectedOrder.address}</Text>
+          </View>
+          
+          <TouchableOpacity style={styles.primaryButton} onPress={markAsDelivered}>
+            <Text style={[styles.primaryButtonText, largeText && styles.largeText]}>✅ ĐÁNH DẤU ĐÃ GIAO</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    );
+  };
+
+  // Screen 6: Order List
+  const ListScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('DANH SÁCH ĐƠN')}
+      <ScrollView style={styles.listContainer}>
+        {mockOrders.map((order, index) => (
+          <TouchableOpacity 
+            key={index}
+            style={styles.orderRow}
+            onPress={() => navigate('detail', order)}
+          >
+            <View style={styles.orderLeft}>
+              <Text style={[styles.orderId, largeText && styles.largeText]}>{order.id}</Text>
+              <Text style={styles.orderCustomer}>{order.customer}</Text>
+            </View>
+            <View style={styles.orderRight}>
+              <Text style={[styles.orderTime, largeText && styles.largeText]}>{order.time}</Text>
+              <Text style={styles.statusDot}>●</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  // Screen 7: Support
+  const SupportScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('HỖ TRỢ')}
+      <View style={styles.supportContainer}>
+        <Text style={[styles.supportTitle, largeText && styles.largeText]}>Chúng tôi luôn sẵn sàng hỗ trợ bạn</Text>
+        
+        <TouchableOpacity style={styles.hotlineButton} onPress={() => {
+          Alert.alert('Gọi hotline', '1900 1234', [{ text: 'Gọi', style: 'default' }]);
+          speak('Đang kết nối hotline');
+        }}>
+          <Text style={styles.hotlineIcon}>📞</Text>
+          <Text style={[styles.hotlineText, largeText && styles.largeText]}>GỌI HOTLINE</Text>
+          <Text style={styles.hotlineNumber}>1900 1234</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.supportBtn} onPress={() => speak('Đang chuyển sang chat hỗ trợ')}>
+          <Text style={[styles.supportBtnText, largeText && styles.largeText]}>💬 Trò chuyện</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Screen 8: Menu
+  const MenuScreen = () => (
+    <View style={styles.container}>
+      {renderHeader('MENU', false)}
+      <View style={styles.menuList}>
+        <TouchableOpacity style={styles.menuListItem} onPress={() => navigate('home')}>
+          <Text style={styles.menuListIcon}>🏠</Text>
+          <Text style={[styles.menuListText, largeText && styles.largeText]}>Trang chủ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuListItem} onPress={() => navigate('list')}>
+          <Text style={styles.menuListIcon}>📋</Text>
+          <Text style={[styles.menuListText, largeText && styles.largeText]}>Lịch sử quét</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuListItem} onPress={() => navigate('support')}>
+          <Text style={styles.menuListIcon}>⚙️</Text>
+          <Text style={[styles.menuListText, largeText && styles.largeText]}>Cài đặt</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.menuListItem}>
+          <Text style={styles.menuListIcon}>ℹ️</Text>
+          <Text style={[styles.menuListText, largeText && styles.largeText]}>Thông tin ứng dụng</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderCurrentScreen = () => {
+    switch (currentScreen) {
+      case 'home': return <HomeScreen />;
+      case 'scan': return <ScanScreen />;
+      case 'success': return <SuccessScreen />;
+      case 'fail': return <FailScreen />;
+      case 'detail': return <DetailScreen />;
+      case 'list': return <ListScreen />;
+      case 'support': return <SupportScreen />;
+      case 'menu': return <MenuScreen />;
+      default: return <HomeScreen />;
+    }
+  };
+
+  return (
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#357ABD" />
+      {renderCurrentScreen()}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  scrollContent: { paddingBottom: 40 },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#357ABD',
+    elevation: 4,
+  },
+  backButton: { padding: 8, marginRight: 12 },
+  backText: { fontSize: 28, color: 'white', fontWeight: 'bold' },
+  headerTitle: { flex: 1, color: 'white', fontSize: 20, fontWeight: '600' },
+  headerTitleLarge: { fontSize: 26 },
+  voiceBtn: { padding: 8 },
+
+  homeHeader: {
+    padding: 24,
+    alignItems: 'center',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  dateText: { color: 'white', fontSize: 18, opacity: 0.9 },
+  progressText: { color: 'white', fontSize: 42, fontWeight: 'bold', marginTop: 8 },
+
+  card: { padding: 20, gap: 16 },
+  bigButton: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  bigButtonText: { fontSize: 22, fontWeight: '700', color: '#2C5AA0', marginBottom: 6 },
+  buttonSub: { color: '#666', fontSize: 16 },
+
+  menuGrid: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  menuItem: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    elevation: 2,
+  },
+  menuIcon: { fontSize: 32, marginBottom: 8 },
+  menuText: { fontSize: 16, fontWeight: '600', color: '#333' },
+
+  cameraContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  camera: { flex: 1, width: '100%' },
+  cameraPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: width * 0.85,
+    height: width * 0.85,
+    borderWidth: 4,
+    borderColor: '#4A90E2',
+    borderRadius: 20,
+    backgroundColor: '#F0F7FF',
+  },
+  placeholderText: { fontSize: 48, marginBottom: 16, color: '#4A90E2' },
+  startScanBtn: {
+    backgroundColor: '#4A90E2',
+    paddingHorizontal: 40,
+    paddingVertical: 16,
+    borderRadius: 50,
+    marginTop: 20,
+  },
+  startScanText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+
+  resultContainer: { flex: 1, padding: 24, alignItems: 'center', justifyContent: 'center' },
+  successIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  checkmark: { fontSize: 80, color: 'white' },
+  successTitle: { fontSize: 28, color: '#4CAF50', fontWeight: 'bold', marginBottom: 8 },
+
+  failIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F44336',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  failX: { fontSize: 80, color: 'white' },
+  failTitle: { fontSize: 28, color: '#F44336', fontWeight: 'bold' },
+  failSubtitle: { fontSize: 18, color: '#666', marginBottom: 32 },
+
+  orderInfo: { width: '100%', marginVertical: 24, backgroundColor: 'white', padding: 20, borderRadius: 16 },
+  infoLabel: { fontSize: 16, color: '#666', marginTop: 12 },
+  infoValue: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 4 },
+
+  primaryButton: {
+    backgroundColor: '#4CAF50',
+    width: '100%',
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  primaryButtonText: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+
+  secondaryButton: {
+    backgroundColor: '#E3F2FD',
+    width: '100%',
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: '#4A90E2',
+  },
+  secondaryButtonText: { color: '#1565C0', fontSize: 18, fontWeight: '600' },
+
+  detailScroll: { flex: 1 },
+  detailCard: { backgroundColor: 'white', margin: 16, padding: 24, borderRadius: 20, elevation: 2 },
+  detailId: { fontSize: 22, fontWeight: 'bold', color: '#333' },
+  detailCode: { fontSize: 18, color: '#4A90E2', marginBottom: 20 },
+  detailLabel: { fontSize: 16, color: '#666', marginTop: 16 },
+  detailValue: { fontSize: 19, color: '#222', fontWeight: '500' },
+
+  listContainer: { flex: 1, padding: 16 },
+  orderRow: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 12,
+    elevation: 2,
+  },
+  orderLeft: { flex: 1 },
+  orderId: { fontSize: 17, fontWeight: '600' },
+  orderCustomer: { color: '#555', marginTop: 4 },
+  orderRight: { alignItems: 'flex-end' },
+  orderTime: { fontSize: 16, color: '#666' },
+  statusDot: { color: '#4CAF50', fontSize: 20, marginTop: 4 },
+
+  supportContainer: { padding: 24, alignItems: 'center' },
+  supportTitle: { fontSize: 22, textAlign: 'center', marginBottom: 40, lineHeight: 32 },
+  hotlineButton: {
+    backgroundColor: '#FF9800',
+    padding: 24,
+    borderRadius: 20,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  hotlineIcon: { fontSize: 48, marginBottom: 12 },
+  hotlineText: { color: 'white', fontSize: 22, fontWeight: 'bold' },
+  hotlineNumber: { color: 'white', fontSize: 28, fontWeight: '700', marginTop: 8 },
+
+  supportBtn: {
+    backgroundColor: '#2196F3',
+    padding: 20,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  supportBtnText: { color: 'white', fontSize: 20, fontWeight: '600' },
+
+  menuList: { padding: 16 },
+  menuListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  menuListIcon: { fontSize: 28, width: 50 },
+  menuListText: { fontSize: 20, fontWeight: '500', color: '#333' },
+
+  toggleContainer: {
+    alignSelf: 'center',
+    marginTop: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 30,
+  },
+  toggleText: { fontSize: 16, color: '#1565C0', fontWeight: '600' },
+
+  largeText: { fontSize: 24 },
+});
+
+export default App;
